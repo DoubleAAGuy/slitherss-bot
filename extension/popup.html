@@ -98,6 +98,7 @@
     .btn-primary { background: #4af; color: #000; }
     .btn-danger  { background: #e44; color: #fff; }
     .btn-secondary { background: #333; color: #ddd; }
+    .btn-success { background: #284; color: #fff; }
     .btn-row {
       display: flex;
       gap: 8px;
@@ -135,6 +136,43 @@
     }
     .target-row input { width: 80px; flex: none; }
     .target-row button { flex: 1; }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex: none;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #333;
+      border-radius: 22px;
+      transition: 0.2s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: #888;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .switch input:checked + .slider { background: #284; }
+    .switch input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    .follow-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .follow-row .label { color: #999; font-size: 13px; }
+    .follow-row .player-pos { color: #4af; font-size: 12px; flex: 1; text-align: right; }
   </style>
 </head>
 <body>
@@ -167,6 +205,15 @@
     <input id="targetX" value="30000">
     <input id="targetY" value="30000">
     <button class="btn btn-secondary" id="btnEdit" style="flex:0; padding:6px 12px">✏</button>
+  </div>
+
+  <div class="follow-row">
+    <label class="switch">
+      <input type="checkbox" id="followToggle">
+      <span class="slider"></span>
+    </label>
+    <span class="label">Follow me</span>
+    <span class="player-pos" id="playerPos">—</span>
   </div>
 
   <hr>

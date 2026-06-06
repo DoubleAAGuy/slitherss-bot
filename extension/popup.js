@@ -19,9 +19,13 @@ const manualFields    = $('manualFields');
 const serverIp        = $('serverIp');
 const serverPort      = $('serverPort');
 const serverPath      = $('serverPath');
+const followToggle    = $('followToggle');
+const playerPos       = $('playerPos');
 
 let pollTimer = null;
-let autoServer = null; // { ip, port, path } detected from slither.io
+let autoServer = null;
+let lastSentPos = null;
+let followThrottle = null;
 
 // --- helpers ----------------------------------------------------------------
 
@@ -84,17 +88,35 @@ async function detectServerFromTab() {
       detectedServer.textContent = `${resp.ip}:${resp.port}`;
       detectedBox.style.display = 'flex';
     }
-  } catch (_) {
-    // content script not ready yet
-  }
+  } catch (_) {}
 }
 
-// Listen for push notifications from content script
+// Listen for push notifications
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg && msg.type === 'server_detected' && msg.data) {
     autoServer = msg.data;
     detectedServer.textContent = `${msg.data.ip}:${msg.data.port}`;
     detectedBox.style.display = 'flex';
+  }
+  if (msg && msg.type === 'player_pos' && msg.data) {
+    const { x, y } = msg.data;
+    playerPos.textContent = `(${x}, ${y})`;
+    // Update target inputs in real time
+    targetX.value = x;
+    targetY.value = y;
+    targetXDisplay.textContent = x;
+    targetYDisplay.textContent = y;
+    // If follow is on, push to server (throttled)
+    if (followToggle.checked) {
+      if (followThrottle) clearTimeout(followThrottle);
+      followThrottle = setTimeout(async () => {
+        const key = `${x},${y}`;
+        if (key !== lastSentPos) {
+          lastSentPos = key;
+          try { await apiEdit(x, y); } catch (_) {}
+        }
+      }, 400);
+    }
   }
 });
 
@@ -173,10 +195,17 @@ $('btnEdit').addEventListener('click', async () => {
   }
 });
 
-// --- slider -----------------------------------------------------------------
+// --- slider / follow toggle -------------------------------------------------
 
 groupsSlider.addEventListener('input', () => {
   groupsVal.textContent = groupsSlider.value;
+});
+
+followToggle.addEventListener('change', () => {
+  saveSettings();
+  if (!followToggle.checked) {
+    playerPos.textContent = '—';
+  }
 });
 
 // --- manual toggle ----------------------------------------------------------
@@ -208,6 +237,7 @@ function saveSettings() {
     serverIp: serverIp.value,
     serverPort: serverPort.value,
     serverPath: serverPath.value,
+    follow: followToggle.checked,
   };
   chrome.storage.local.set({ botControl: s });
 }
@@ -221,6 +251,7 @@ function loadSettings() {
     if (s.serverIp)   serverIp.value = s.serverIp;
     if (s.serverPort) serverPort.value = s.serverPort;
     if (s.serverPath) serverPath.value = s.serverPath;
+    if (s.follow !== undefined) followToggle.checked = s.follow;
   });
 }
 
