@@ -7,10 +7,15 @@ Multi-proxy slither.io bot client. Bots authenticate through the server challeng
 ```powershell
 # 1. Install Python 3.10+ from https://python.org
 
-# 2. Install requirements
+# 2. Clone and enter the repo
+Remove-Item -Recurse -Force slitherss-bot -ErrorAction SilentlyContinue
+git clone https://github.com/DoubleAAGuy/slitherss-bot.git
+cd slitherss-bot
+
+# 3. Install requirements
 pip install aiohttp
 
-# 3. Run
+# 4. Run
 python bot.py
 ```
 
