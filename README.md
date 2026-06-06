@@ -2,6 +2,8 @@
 
 Multi-proxy slither.io bot client. Bots authenticate through the server challenge, group via proxies, and steer toward a live-updating target.
 
+**Chromium Extension:** [slitherss-bot-control](https://github.com/DoubleAAGuy/slitherss-bot-control) — control bots from your browser.
+
 ## Quickstart (Windows PowerShell)
 
 ```powershell
