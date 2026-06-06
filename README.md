@@ -1,6 +1,6 @@
 # slither.io Bot
 
-Multi-proxy slither.io bot client. Bots authenticate through the server challenge, group via proxies, and steer toward a target coordinate.
+Multi-proxy slither.io bot client. Bots authenticate through the server challenge, group via proxies, and steer toward a live-updating target.
 
 ## Quickstart (Windows PowerShell)
 
@@ -15,20 +15,49 @@ cd slitherss-bot
 # 3. Install requirements
 pip install aiohttp
 
-# 4. Run
-python bot.py
+# 4. Run the web server
+python main.py
 ```
 
-You'll be prompted for the server, port, path, and number of groups (4 bots per proxy).
+## Usage
+
+### Start the control server
+
+```powershell
+python main.py
+```
+
+This starts a web server on `0.0.0.0:8081`.
+
+### Control endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /start/{ip}:{port}/{groups}` | Spawn bots through that server (groups x 4 bots) |
+| `GET /edit?x=10000&y=20000` | Update target — bots steer to new coords live |
+| `POST /edit` with `{"x": 10000, "y": 20000}` | Same via JSON body |
+| `GET /target` | Current target coordinates |
+| `GET /status` | Running bot count, target, groups |
+| `GET /stop` | Kill all bot tasks |
 
 ### Example
 
 ```powershell
-python bot.py
-# Server IP (default 192.211.52.146): 15.204.212.200
-# Server port (default 444): 444
-# Path (default /slither): /slither
-# Number of groups (4 bots each, default 4): 25
+# In one terminal:
+python main.py
+
+# In another terminal or browser:
+curl "http://doubleaaguy.duckdns.org:8081/start/15.204.212.200:444/25"
+# → 100 bots across 25 proxies, steering toward (30000, 30000)
+
+curl "http://doubleaaguy.duckdns.org:8081/edit?x=40000&y=40000"
+# → all bots change course immediately
 ```
 
-This connects 100 bots across 25 proxies, all steering toward (30000, 30000).
+### Standalone CLI (no web server)
+
+```powershell
+python bot.py
+# Prompts for server, port, path, group count
+# Steers toward (30000, 30000) by default
+```

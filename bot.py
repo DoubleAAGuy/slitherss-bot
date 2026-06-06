@@ -98,7 +98,7 @@ def solve_challenge(challenge_bytes):
 
 
 class Bot:
-    def __init__(self, ws, name, game_radius=21600, target_x=None, target_y=None):
+    def __init__(self, ws, name, target_getter, game_radius=21600):
         self.ws = ws
         self.name = name
         self.game_radius = game_radius
@@ -106,16 +106,12 @@ class Bot:
         self.x = game_radius
         self.y = game_radius
         self.wangle = 0.0
-        self.target_x = target_x
-        self.target_y = target_y
+        self.target_getter = target_getter
 
     def steer(self):
-        if self.target_x is not None and self.target_y is not None:
-            dx = self.target_x - self.x
-            dy = self.target_y - self.y
-        else:
-            dx = self.game_radius - self.x
-            dy = self.game_radius - self.y
+        tx, ty = self.target_getter()
+        dx = tx - self.x
+        dy = ty - self.y
         dist = math.hypot(dx, dy)
         if dist < 200:
             return None
@@ -127,6 +123,7 @@ class Bot:
 
 
 _ws_test_sem = asyncio.Semaphore(200)
+
 
 async def fetch_proxies():
     import aiohttp
@@ -179,15 +176,13 @@ async def test_proxy_ws(proxy, test_host, test_port):
             return False
 
 
-async def run_bot(name, host, port, path, proxy=None, target_x=None, target_y=None):
+async def run_bot(name, host, port, path, target_getter, proxy=None):
     import aiohttp
 
     headers = {
         "Origin": "http://slither.io",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
     }
-
-    retries = 0
 
     session = None
     ws = None
@@ -201,7 +196,7 @@ async def run_bot(name, host, port, path, proxy=None, target_x=None, target_y=No
                 kw["proxy"] = f"http://{proxy}"
             session = aiohttp.ClientSession()
             ws = await session.ws_connect(uri, **kw)
-            bot = Bot(ws, name, target_x=target_x, target_y=target_y)
+            bot = Bot(ws, name, target_getter)
             print(f"[{name}] Connected ({'proxy ' + proxy if proxy else 'direct'})", flush=True)
 
             await ws.send_bytes(bytes([1]))
@@ -269,7 +264,6 @@ async def run_bot(name, host, port, path, proxy=None, target_x=None, target_y=No
                         found_id = True
                         print(f"[{name}] Snake ID: {bot.snake_id}, grd: {grd}, msl: {bot_msl}", flush=True)
 
-            retries = 0
             last_cord_log = time.monotonic()
             last_ping = time.monotonic()
             last_angle_send = 0.0
@@ -382,7 +376,6 @@ async def run_bot(name, host, port, path, proxy=None, target_x=None, target_y=No
         except asyncio.CancelledError:
             break
         except Exception as e:
-            retries += 1
             delay = 3 + random.uniform(0, 2)
             print(f"[{name}] Disconnected ({e}), reconnecting in {delay:.1f}s...", flush=True)
             await asyncio.sleep(delay)
@@ -401,45 +394,16 @@ async def run_bot(name, host, port, path, proxy=None, target_x=None, target_y=No
                 session = None
 
 
-async def main():
-    import aiohttp
-
-    print("slither.io Bot Client")
-    print("=" * 35)
-
-    host = input("Server IP (default 192.211.52.146): ").strip() or "192.211.52.146"
-    port_str = input("Server port (default 444): ").strip() or "444"
-    try:
-        port = int(port_str)
-    except ValueError:
-        print("Invalid port, using 444")
-        port = 444
-
-    path = input("Path (default /slither): ").strip() or "/slither"
-    if not path.startswith("/"):
-        path = "/" + path
-
-    groups_str = input("Number of groups (4 bots each, default 4): ").strip() or "4"
-    try:
-        num_groups = int(groups_str)
-        if num_groups < 1:
-            num_groups = 1
-    except ValueError:
-        num_groups = 4
-
-    print("\nFetching proxies...", flush=True)
-
-    proxies_for_groups = []
+async def find_proxies(host, port, num_groups):
+    proxies = []
     fetch_round = 0
-
-    while len(proxies_for_groups) < num_groups:
+    while len(proxies) < num_groups:
         raw = await fetch_proxies()
         random.shuffle(raw)
         fetch_round += 1
         print(f"[Round {fetch_round}] Found {len(raw)} total proxies", flush=True)
 
         sample = raw[:5000]
-
         print(f"  Testing {len(sample)} against game WS...", flush=True)
         try:
             ws_results = await asyncio.wait_for(
@@ -454,14 +418,20 @@ async def main():
         print(f"  WS-working: {len(good)}", flush=True)
 
         for p in good:
-            if len(proxies_for_groups) >= num_groups:
+            if len(proxies) >= num_groups:
                 break
-            if p not in proxies_for_groups:
-                proxies_for_groups.append(p)
-                print(f"  -> Using proxy {p} ({len(proxies_for_groups)}/{num_groups})", flush=True)
+            if p not in proxies:
+                proxies.append(p)
+                print(f"  -> Using proxy {p} ({len(proxies)}/{num_groups})", flush=True)
 
-        if len(proxies_for_groups) < num_groups:
-            print(f"  Only have {len(proxies_for_groups)}/{num_groups} proxies, retrying...", flush=True)
+        if len(proxies) < num_groups:
+            print(f"  Only have {len(proxies)}/{num_groups} proxies, retrying...", flush=True)
+
+    return proxies
+
+
+async def run_bots(host, port, path, num_groups, target_getter):
+    proxies = await find_proxies(host, port, num_groups)
 
     bots_per_group = 4
     count = num_groups * bots_per_group
@@ -469,24 +439,40 @@ async def main():
 
     tasks = []
     for i in range(count):
-        proxy = proxies_for_groups[i // bots_per_group]
+        proxy = proxies[i // bots_per_group]
         name = f"Bot_{i + 1}"
         tasks.append(asyncio.create_task(
-            run_bot(name, host, port, path, proxy=proxy, target_x=30000, target_y=30000)
+            run_bot(name, host, port, path, target_getter, proxy=proxy)
         ))
         await asyncio.sleep(1.5)
 
-    print(f"{count} bot(s) running. Press Ctrl+C to stop.\n")
-
-    try:
-        await asyncio.gather(*tasks)
-    except asyncio.CancelledError:
-        pass
+    print(f"{count} bot(s) running.\n", flush=True)
+    return tasks
 
 
 if __name__ == '__main__':
+    host = input("Server IP (default 192.211.52.146): ").strip() or "192.211.52.146"
+    port_str = input("Server port (default 444): ").strip() or "444"
     try:
-        asyncio.run(main())
+        port = int(port_str)
+    except ValueError:
+        port = 444
+    path = input("Path (default /slither): ").strip() or "/slither"
+    if not path.startswith("/"):
+        path = "/" + path
+    groups_str = input("Number of groups (4 bots each, default 4): ").strip() or "4"
+    try:
+        num_groups = int(groups_str)
+        if num_groups < 1:
+            num_groups = 1
+    except ValueError:
+        num_groups = 4
+
+    def _default_target():
+        return (30000, 30000)
+
+    try:
+        asyncio.run(run_bots(host, port, path, num_groups, _default_target))
     except KeyboardInterrupt:
         print("\nStopped.")
         sys.exit(0)
