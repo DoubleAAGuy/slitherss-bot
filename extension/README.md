@@ -1,27 +1,29 @@
 # slither.io Bot Control — Chromium Extension
 
-Control your slither.io bot groups from the browser. Start, stop, and live-update target coordinates.
+Auto-detect your game server and control slither.io bots from your browser.
 
 ## Install
 
-1. Open Chrome/Edge/Brave and go to `chrome://extensions`
+1. Open Chrome/Edge/Brave → `chrome://extensions`
 2. Enable **Developer mode** (top right)
-3. Click **Load unpacked**
-4. Select the `extension` folder from this repo
-5. The extension icon appears in the toolbar
+3. **Load unpacked** → select the `extension` folder
+4. Pin the extension to your toolbar
 
 ## Usage
 
-| Field / Button | What it does |
-|----------------|--------------|
-| **Server / Port / Path** | Game server to connect bots to |
-| **Groups** | Number of proxy groups (× 4 bots each) |
-| **▶ Start** | Calls `/start/{ip}:{port}/{groups}` on the control server |
-| **■ Stop** | Calls `/stop` — kills all bot tasks |
-| **X / Y** | Target coordinates to steer toward |
-| **✏ Update Target** | Calls `/edit?x=...&y=...` — bots change course immediately |
-| **Status** | Auto-polls `/status` every 3s |
+1. Play slither.io in a tab
+2. Click the extension icon
+3. Set **Groups** (× 4 bots each)
+4. Hit **▶ Start** — bots connect, authenticate, and steer
+
+### Follow Me
+
+Toggle **Follow me** on — the extension intercepts your snake's position from the game's WebSocket and auto-updates the target. Bots chase your snake in real time with 400ms throttle.
+
+### Manual mode
+
+Not on slither.io? Click **Manual server config** to type IP/port/path.
 
 ## Prerequisites
 
-The control server (`main.py`) must be running on `doubleaaguy.duckdns.org:8081`.
+`main.py` must be running on `doubleaaguy.duckdns.org:8081`.
