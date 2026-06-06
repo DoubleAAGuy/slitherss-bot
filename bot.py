@@ -6,6 +6,9 @@ import struct
 import sys
 import time
 
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 PI = math.pi
 M_2PI = 2.0 * PI
 
