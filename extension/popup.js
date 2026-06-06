@@ -2,21 +2,26 @@ const SERVER_URL = 'http://doubleaaguy.duckdns.org:8081';
 
 const $ = id => document.getElementById(id);
 
-const serverIp   = $('serverIp');
-const serverPort = $('serverPort');
-const serverPath = $('serverPath');
-const groupsSlider = $('groupsSlider');
-const groupsVal    = $('groupsVal');
-const targetX      = $('targetX');
-const targetY      = $('targetY');
-const statusText   = $('statusText');
-const botsText     = $('botsText');
-const targetXDisplay = $('targetXDisplay');
-const targetYDisplay = $('targetYDisplay');
-const groupsDisplay  = $('groupsDisplay');
-const errorText      = $('errorText');
+const detectedBox     = $('detectedBox');
+const detectedServer  = $('detectedServer');
+const groupsSlider    = $('groupsSlider');
+const groupsVal       = $('groupsVal');
+const targetX         = $('targetX');
+const targetY         = $('targetY');
+const statusText      = $('statusText');
+const botsText        = $('botsText');
+const targetXDisplay  = $('targetXDisplay');
+const targetYDisplay  = $('targetYDisplay');
+const groupsDisplay   = $('groupsDisplay');
+const errorText       = $('errorText');
+const manualToggle    = $('manualToggle');
+const manualFields    = $('manualFields');
+const serverIp        = $('serverIp');
+const serverPort      = $('serverPort');
+const serverPath      = $('serverPath');
 
 let pollTimer = null;
+let autoServer = null; // { ip, port, path } detected from slither.io
 
 // --- helpers ----------------------------------------------------------------
 
@@ -34,12 +39,20 @@ async function apiGet(path) {
   return r.json();
 }
 
+function getServerInfo() {
+  if (autoServer) return autoServer;
+  return {
+    ip: serverIp.value.trim() || '192.211.52.146',
+    port: serverPort.value.trim() || '444',
+    path: serverPath.value.trim() || '/slither',
+  };
+}
+
 async function apiStart() {
-  const ip   = serverIp.value.trim() || '192.211.52.146';
-  const port = serverPort.value.trim() || '444';
-  const path = encodeURIComponent(serverPath.value.trim() || '/slither');
+  const s = getServerInfo();
   const grps = parseInt(groupsSlider.value) || 4;
-  return apiGet(`/start/${ip}:${port}/${grps}?path=${path}`);
+  const path = encodeURIComponent(s.path);
+  return apiGet(`/start/${s.ip}:${s.port}/${grps}?path=${path}`);
 }
 
 async function apiStop() {
@@ -53,6 +66,37 @@ async function apiEdit(x, y) {
 async function apiStatus() {
   return apiGet('/status');
 }
+
+// --- auto-detect server from slither.io ------------------------------------
+
+async function detectServerFromTab() {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tab = tabs[0];
+  if (!tab || !tab.url) return;
+
+  const isSlither = /slither\.(io|com)/.test(tab.url);
+  if (!isSlither) return;
+
+  try {
+    const resp = await chrome.tabs.sendMessage(tab.id, { type: 'get_server' });
+    if (resp && resp.ip) {
+      autoServer = resp;
+      detectedServer.textContent = `${resp.ip}:${resp.port}`;
+      detectedBox.style.display = 'flex';
+    }
+  } catch (_) {
+    // content script not ready yet
+  }
+}
+
+// Listen for push notifications from content script
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg && msg.type === 'server_detected' && msg.data) {
+    autoServer = msg.data;
+    detectedServer.textContent = `${msg.data.ip}:${msg.data.port}`;
+    detectedBox.style.display = 'flex';
+  }
+});
 
 // --- update UI --------------------------------------------------------------
 
@@ -102,7 +146,7 @@ $('btnStop').addEventListener('click', async () => {
   showError('');
   $('btnStop').disabled = true;
   try {
-    const data = await apiStop();
+    await apiStop();
     updateStatus({ running: 0, target: {}, groups: 0, total_bots: 0 });
     showError('');
   } catch (e) {
@@ -135,6 +179,13 @@ groupsSlider.addEventListener('input', () => {
   groupsVal.textContent = groupsSlider.value;
 });
 
+// --- manual toggle ----------------------------------------------------------
+
+manualToggle.addEventListener('click', () => {
+  const show = manualFields.classList.toggle('visible');
+  manualToggle.textContent = show ? '− Hide manual config' : '＋ Manual server config';
+});
+
 // --- auto-poll --------------------------------------------------------------
 
 function startPolling() {
@@ -151,12 +202,12 @@ function stopPolling() {
 
 function saveSettings() {
   const s = {
-    serverIp: serverIp.value,
-    serverPort: serverPort.value,
-    serverPath: serverPath.value,
     groups: groupsSlider.value,
     targetX: targetX.value,
     targetY: targetY.value,
+    serverIp: serverIp.value,
+    serverPort: serverPort.value,
+    serverPath: serverPath.value,
   };
   chrome.storage.local.set({ botControl: s });
 }
@@ -164,16 +215,16 @@ function saveSettings() {
 function loadSettings() {
   chrome.storage.local.get('botControl', (result) => {
     const s = result.botControl || {};
-    if (s.serverIp)   serverIp.value = s.serverIp;
-    if (s.serverPort) serverPort.value = s.serverPort;
-    if (s.serverPath) serverPath.value = s.serverPath;
     if (s.groups)     { groupsSlider.value = s.groups; groupsVal.textContent = s.groups; }
     if (s.targetX)    targetX.value = s.targetX;
     if (s.targetY)    targetY.value = s.targetY;
+    if (s.serverIp)   serverIp.value = s.serverIp;
+    if (s.serverPort) serverPort.value = s.serverPort;
+    if (s.serverPath) serverPath.value = s.serverPath;
   });
 }
 
-[serverIp, serverPort, serverPath, groupsSlider, targetX, targetY].forEach(el => {
+[groupsSlider, targetX, targetY, serverIp, serverPort, serverPath].forEach(el => {
   el.addEventListener('change', saveSettings);
   el.addEventListener('input', () => {
     if (el !== groupsSlider) saveSettings();
@@ -184,6 +235,7 @@ function loadSettings() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings();
+  detectServerFromTab();
   startPolling();
 });
 

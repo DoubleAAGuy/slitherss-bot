@@ -19,6 +19,20 @@
       margin-bottom: 14px;
       text-align: center;
     }
+    .detected-box {
+      background: #0d2818;
+      border: 1px solid #1a4a2e;
+      border-radius: 4px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .detected-box .label { color: #4a4; font-size: 11px; text-transform: uppercase; }
+    .detected-box .server { color: #8f8; font-weight: 600; }
+    .detected-box .badge { color: #4a4; font-size: 11px; }
     .row {
       display: flex;
       gap: 8px;
@@ -45,7 +59,7 @@
     }
     input[type=range] {
       flex: none;
-      width: 100px;
+      width: 120px;
       background: transparent;
     }
     input[type=range]::-webkit-slider-runnable-track {
@@ -91,6 +105,16 @@
     }
     .btn-row .btn { flex: 1; }
     hr { border: none; border-top: 1px solid #222; margin: 12px 0; }
+    .manual-link {
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .manual-link:hover { color: #4af; }
+    .manual-fields { display: none; }
+    .manual-fields.visible { display: block; }
     .status-box {
       background: #1a1a1a;
       border: 1px solid #222;
@@ -104,22 +128,24 @@
     .status-box .val.green { color: #4a4; }
     .status-box .val.red { color: #e44; }
     .error { color: #e44; font-size: 12px; margin-top: 6px; }
+    .target-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .target-row input { width: 80px; flex: none; }
+    .target-row button { flex: 1; }
   </style>
 </head>
 <body>
   <h1>🐍 Bot Control</h1>
 
-  <div class="row">
-    <label>Server</label>
-    <input id="serverIp" placeholder="192.211.52.146" value="192.211.52.146">
-  </div>
-  <div class="row">
-    <label>Port</label>
-    <input id="serverPort" placeholder="444" value="444">
-  </div>
-  <div class="row">
-    <label>Path</label>
-    <input id="serverPath" placeholder="/slither" value="/slither">
+  <div class="detected-box" id="detectedBox" style="display:none">
+    <div>
+      <div class="label">Playing on</div>
+      <div class="server" id="detectedServer">—</div>
+    </div>
+    <div class="badge">auto-detected</div>
   </div>
 
   <div class="row">
@@ -136,19 +162,34 @@
 
   <hr>
 
-  <div class="row">
-    <label>X</label>
+  <div class="target-row row">
+    <label>Target</label>
     <input id="targetX" value="30000">
-  </div>
-  <div class="row">
-    <label>Y</label>
     <input id="targetY" value="30000">
+    <button class="btn btn-secondary" id="btnEdit" style="flex:0; padding:6px 12px">✏</button>
   </div>
-  <button class="btn btn-secondary" id="btnEdit" style="width:100%">✏ Update Target</button>
 
   <hr>
 
-  <div class="status-box" id="statusBox">
+  <div class="manual-link" id="manualToggle">＋ Manual server config</div>
+  <div class="manual-fields" id="manualFields">
+    <div class="row">
+      <label>Server</label>
+      <input id="serverIp" placeholder="192.211.52.146">
+    </div>
+    <div class="row">
+      <label>Port</label>
+      <input id="serverPort" placeholder="444">
+    </div>
+    <div class="row">
+      <label>Path</label>
+      <input id="serverPath" placeholder="/slither" value="/slither">
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="status-box">
     <div><span class="label">Status:</span> <span class="val" id="statusText">—</span></div>
     <div><span class="label">Bots:</span> <span id="botsText">0</span> running</div>
     <div><span class="label">Target:</span> (<span id="targetXDisplay">30000</span>, <span id="targetYDisplay">30000</span>)</div>
