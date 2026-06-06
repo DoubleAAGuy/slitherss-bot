@@ -52,7 +52,9 @@ def create_app():
             return web.json_response({"error": "format: ip:port"}, status=400)
         host, port_str = ip_port.rsplit(':', 1)
         port = int(port_str)
-        path = "/slither"
+        path = request.query.get('path', '/slither')
+        if not path.startswith('/'):
+            path = '/' + path
 
         if app['bot_tasks']:
             await cancel_bots(app)

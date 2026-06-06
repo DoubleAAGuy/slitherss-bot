@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>slither.io Bot Control</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 380px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      background: #111;
+      color: #ddd;
+      padding: 16px;
+    }
+    h1 {
+      font-size: 18px;
+      color: #4af;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .row label {
+      min-width: 60px;
+      color: #999;
+      font-size: 13px;
+    }
+    input, select {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background: #1a1a1a;
+      color: #ddd;
+      font-size: 13px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #4af;
+    }
+    input[type=range] {
+      flex: none;
+      width: 100px;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 4px;
+      background: #333;
+      border-radius: 2px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4af;
+      margin-top: -5px;
+    }
+    .group-val {
+      min-width: 36px;
+      text-align: center;
+      font-weight: bold;
+      color: #4af;
+    }
+    .sub {
+      font-size: 11px;
+      color: #666;
+      text-align: center;
+      flex: 1;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .btn:active { opacity: 0.8; }
+    .btn-primary { background: #4af; color: #000; }
+    .btn-danger  { background: #e44; color: #fff; }
+    .btn-secondary { background: #333; color: #ddd; }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .btn-row .btn { flex: 1; }
+    hr { border: none; border-top: 1px solid #222; margin: 12px 0; }
+    .status-box {
+      background: #1a1a1a;
+      border: 1px solid #222;
+      border-radius: 4px;
+      padding: 10px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .status-box .label { color: #666; }
+    .status-box .val { color: #4af; }
+    .status-box .val.green { color: #4a4; }
+    .status-box .val.red { color: #e44; }
+    .error { color: #e44; font-size: 12px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>🐍 Bot Control</h1>
+
+  <div class="row">
+    <label>Server</label>
+    <input id="serverIp" placeholder="192.211.52.146" value="192.211.52.146">
+  </div>
+  <div class="row">
+    <label>Port</label>
+    <input id="serverPort" placeholder="444" value="444">
+  </div>
+  <div class="row">
+    <label>Path</label>
+    <input id="serverPath" placeholder="/slither" value="/slither">
+  </div>
+
+  <div class="row">
+    <label>Groups</label>
+    <input type="range" id="groupsSlider" min="1" max="100" value="4">
+    <span class="group-val" id="groupsVal">4</span>
+    <span class="sub">× 4 bots</span>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btnStart">▶ Start</button>
+    <button class="btn btn-danger"  id="btnStop">■ Stop</button>
+  </div>
+
+  <hr>
+
+  <div class="row">
+    <label>X</label>
+    <input id="targetX" value="30000">
+  </div>
+  <div class="row">
+    <label>Y</label>
+    <input id="targetY" value="30000">
+  </div>
+  <button class="btn btn-secondary" id="btnEdit" style="width:100%">✏ Update Target</button>
+
+  <hr>
+
+  <div class="status-box" id="statusBox">
+    <div><span class="label">Status:</span> <span class="val" id="statusText">—</span></div>
+    <div><span class="label">Bots:</span> <span id="botsText">0</span> running</div>
+    <div><span class="label">Target:</span> (<span id="targetXDisplay">30000</span>, <span id="targetYDisplay">30000</span>)</div>
+    <div><span class="label">Groups:</span> <span id="groupsDisplay">—</span></div>
+    <div class="error" id="errorText"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

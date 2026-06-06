@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "slither.io Bot Control",
+  "version": "1.0",
+  "description": "Control slither.io bot groups: start, stop, and live-update their target coordinates.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "slither.io Bot Control"
+  },
+  "host_permissions": [
+    "http://doubleaaguy.duckdns.org:8081/*"
+  ],
+  "permissions": [
+    "storage"
+  ]
+}
